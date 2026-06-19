@@ -357,27 +357,76 @@ All endpoints are prefixed with `/api/v1`.
 
 ---
 
-## Provider Integrations
+## Provider Integrations — Plugin Architecture
 
-The system uses a plugin-based architecture. New providers are auto-discovered when placed in the correct directory.
+The system is built with a **fully decoupled plugin architecture**. The core code never references any specific provider by name — it discovers them automatically at runtime. This means **any developer can add a new provider** (eSIM, SMS, or payment) by simply creating a single Python file in the right directory, without modifying any core code.
 
-### eSIM Providers
-| Provider | Type | Status | Features |
+### How It Works
+
+```
+app/providers/
+├── base.py              # Abstract base classes (ESIMProviderBase, SMSProviderBase, PaymentProviderBase)
+├── registry.py           # Auto-discovery: scans directories, registers decorated classes
+├── esim/
+│   └── your_provider.py  # ← Drop a new file here, it's auto-loaded
+├── payment/
+│   └── your_provider.py  # ← Drop a new file here, it's auto-loaded
+└── sms/
+    └── your_provider.py  # ← Drop a new file here, it's auto-loaded
+```
+
+**To add a new provider, you only need to:**
+1. Create a new Python file in the appropriate folder (e.g., `app/providers/esim/my_provider.py`)
+2. Create a class that inherits from the base class (e.g., `ESIMProviderBase`)
+3. Decorate it with the registration decorator (e.g., `@esim_provider("my_provider")`)
+4. Add your API credentials to `.env` — done.
+
+No modifications to routes, services, models, or configuration files are needed. The registry (`app/providers/registry.py`) uses `pkgutil.iter_modules` to scan for new files on startup and registers them automatically.
+
+### Currently Integrated Providers
+
+#### eSIM Providers
+| Provider | File | Status | Features |
 |---|---|---|---|
-| **eSIMGo** | On-demand activation | ✅ Active | Catalogue, order, bundle activation, install details, usage callbacks |
+| **eSIMGo** | `app/providers/esim/esimgo.py` | ✅ Active | Catalogue, order, bundle activation, install details, usage callbacks |
 
-### SMS Providers
-| Provider | Type | Status | Features |
-|---|---|---|---|
-| **BulkSMSIraq** | Standing Tech gateway | ✅ Active | OTP, SMS, balance check, 28 error codes, sandbox |
-| **OTPIQ** | OTPIQ gateway | ✅ Active | OTP, webhook callbacks, HMAC signing |
+*To add a new eSIM provider: create `app/providers/esim/your_company.py`, extend `ESIMProviderBase`, add `@esim_provider("your_company")`.*
 
-### Payment Providers
-| Provider | Type | Status | Features |
+#### SMS Providers
+| Provider | File | Status | Features |
 |---|---|---|---|
-| **ZainCash** | Iraqi mobile wallet | ✅ Active | JWT-signed, UAT/Production |
-| **FIB** | Fast Iraq Bank | ✅ Active | OAuth2 client credentials |
-| **QiCard (SuperQI)** | Credit/debit card | ✅ Active | Full state machine, webhooks, refunds |
+| **BulkSMSIraq** | `app/providers/sms/bulksmsiraq.py` | ✅ Active | OTP, SMS, balance check, 28 error codes, sandbox |
+| **OTPIQ** | `app/providers/sms/otpiq.py` | ✅ Active | OTP, webhook callbacks, HMAC signing |
+
+*To add a new SMS provider: create `app/providers/sms/your_company.py`, extend `SMSProviderBase`, add `@sms_provider("your_company")`.*
+
+#### Payment Providers
+| Provider | File | Status | Features |
+|---|---|---|---|
+| **ZainCash** | `app/providers/payment/zaincash.py` | ✅ Active | Iraqi mobile wallet, JWT-signed, UAT/Production |
+| **FIB** | `app/providers/payment/fib.py` | ✅ Active | Fast Iraq Bank, OAuth2 client credentials |
+| **QiCard (SuperQI)** | `app/providers/payment/superqi.py` | ✅ Active | Credit/debit card, full state machine, webhooks, refunds |
+
+*To add a new payment provider: create `app/providers/payment/your_company.py`, extend `PaymentProviderBase`, add `@payment_provider("your_company")`.*
+
+### Base Classes (what your provider must implement)
+
+| Base Class | Required Methods |
+|---|---|
+| `ESIMProviderBase` | `activate_bundle()`, `get_bundle_status()`, `create_order()`, `get_install_details()`, `get_catalogue()`, `handle_usage_callback()` |
+| `SMSProviderBase` | `send_otp()`, `send_sms()`, `verify_otp()`, `get_balance()` |
+| `PaymentProviderBase` | `initiate_payment()`, `verify_webhook()` |
+
+### Configuration
+
+Once registered, the provider is selected dynamically at runtime via the admin settings:
+```
+ALLOWED_SMS_PROVIDERS=["bulksmsiraq","otpiq","your_new_provider"]
+ALLOWED_ESIM_PROVIDERS=["esimgo","your_new_provider"]
+ALLOWED_PAYMENT_PROVIDERS=["zaincash","qicard","fib","your_new_provider"]
+```
+
+Provider credentials are securely encrypted at rest using `API_KEYS_ENCRYPTION_KEY` and stored in the database. Each provider's API calls are fully logged to `EsimProviderTransaction` / `SMSProviderTransaction` for audit and debugging.
 
 ---
 
@@ -535,6 +584,12 @@ esim-ego-server/
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## Author
+
+**omer jasim** — [oj33593@gmail.com](mailto:oj33593@gmail.com)
 
 ---
 
