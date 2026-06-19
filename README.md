@@ -140,7 +140,7 @@ The system supports:
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/omermask/Flask-backend-server-for-esim-application.git
+git clone https://github.com/omermask/esim-ego-server.git
 cd esim-ego-server
 python3 -m venv venv
 source venv/bin/activate
@@ -604,6 +604,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/omermask/Flask-backend-server-for-esim-application/issues)
+- **Issues**: [GitHub Issues](https://github.com/omermask/esim-ego-server/issues)
 - **Documentation**: See [API.md](API.md) for endpoint details
 - **Admin Dashboard**: Available at [app-ego-dashboard](https://github.com/omermask/app-ego-dashboard) (Flutter)
