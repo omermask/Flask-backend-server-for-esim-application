@@ -7,6 +7,9 @@ Production-grade backend API server for an eSIM (embedded SIM) digital marketpla
 [![PostgreSQL](https://img.shields.io/badge/postgresql-16-blue)](https://postgresql.org)
 [![Redis](https://img.shields.io/badge/redis-7-red)](https://redis.io)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/omermask/esim-ego-server?style=social)](https://github.com/omermask/esim-ego-server/stargazers)
+[![CI](https://github.com/omermask/esim-ego-server/actions/workflows/ci.yml/badge.svg)](https://github.com/omermask/esim-ego-server/actions/workflows/ci.yml)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker)](https://github.com/omermask/esim-ego-server/pkgs/container/esim-ego-server)
 
 ---
 
@@ -132,12 +135,26 @@ The system supports:
 
 ## Quick Start
 
-### Prerequisites
+### Option A: Docker Compose (recommended)
+
+```bash
+git clone https://github.com/omermask/esim-ego-server.git
+cd esim-ego-server
+cp .env.example .env
+# Edit .env with your secrets
+docker compose up -d
+```
+
+This starts PostgreSQL, Redis, the Flask API (with auto-migration), Celery worker, and Celery beat — all with a single command.
+
+### Option B: Manual Setup
+
+#### Prerequisites
 - Python 3.11+
 - PostgreSQL 16+
 - Redis 7+
 
-### 1. Clone & Setup
+#### 1. Clone & Setup
 
 ```bash
 git clone https://github.com/omermask/esim-ego-server.git
@@ -147,14 +164,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+#### 2. Configure Environment
 
 ```bash
 cp .env.example .env
 # Edit .env with your credentials (database, Redis, secrets)
 ```
 
-### 3. Database
+#### 3. Database
 
 ```bash
 # Create PostgreSQL database
@@ -164,7 +181,7 @@ createdb esim_ego
 alembic upgrade head
 ```
 
-### 4. Run
+#### 4. Run
 
 ```bash
 # Development
@@ -174,7 +191,7 @@ python run.py
 gunicorn -c gunicorn.conf.py 'app:create_app()'
 ```
 
-### 5. Verify
+### Verify
 
 ```bash
 curl http://localhost:5000/health
@@ -479,7 +496,15 @@ Run `alembic upgrade head` to apply all migrations.
 
 ## Deployment
 
-### Production (Gunicorn)
+### Docker Compose (recommended)
+
+```bash
+docker compose up -d
+```
+
+Starts PostgreSQL, Redis, Flask API, Celery worker, and Celery beat. Configure via `.env`.
+
+### Production (Gunicorn + System Services)
 
 ```bash
 gunicorn -c gunicorn.conf.py 'app:create_app()'
@@ -487,24 +512,14 @@ gunicorn -c gunicorn.conf.py 'app:create_app()'
 
 Default config: 4 gevent workers, `0.0.0.0:5000`, 30s timeout.
 
-### Docker (recommended)
-
-```dockerfile
-FROM python:3.12-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:create_app()"]
-```
-
 ### Required Services
 - PostgreSQL 16+
 - Redis 7+
 - Celery worker (for background tasks)
 
 ```bash
-celery -A app.celery_app worker --loglevel=info
+celery -A app.celery_app worker --loglevel=info --concurrency=2
+celery -A app.celery_app beat --loglevel=info
 ```
 
 ### Environment Checklist
@@ -547,10 +562,16 @@ esim-ego-server/
 ├── alembic/                 # Database migrations (18 versions)
 ├── scripts/                 # Utility scripts
 ├── config.py                # Pydantic settings model
+├── Dockerfile               # Production Docker image
+├── docker-compose.yml       # Multi-service orchestration
 ├── run.py                   # Entry point (dev/prod)
 ├── gunicorn.conf.py         # Production server config
 ├── requirements.txt         # Python dependencies
-└── .env.example             # Environment template
+├── .env.example             # Environment template
+├── CONTRIBUTING.md          # Contribution guidelines
+├── CODE_OF_CONDUCT.md       # Community standards
+├── SECURITY.md              # Security policy
+└── .github/                 # Issue templates & CI workflows
 ```
 
 ### Key Patterns
@@ -567,9 +588,12 @@ esim-ego-server/
 
 ## Contributing
 
+Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting changes.
+
+Quick overview:
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
@@ -578,6 +602,7 @@ esim-ego-server/
 - Follow existing provider plugin pattern for new integrations
 - Add translation keys for user-facing messages
 - Run `alembic upgrade head` after pulling new migrations
+- Format with `black` and lint with `flake8`
 
 ### Build the User & Admin Frontends
 You can contribute by building frontend applications (mobile or web) that connect to this API. The server is fully API-driven — any client can consume it:
@@ -587,6 +612,9 @@ You can contribute by building frontend applications (mobile or web) that connec
 - **New Admin Features** — Add new admin screens or improve existing ones in the Flutter dashboard
 
 The API is fully documented in [API.md](API.md) with all endpoints, request/response formats, and authentication details. Any HTTP client can integrate.
+
+### Reporting Security Issues
+See [SECURITY.md](SECURITY.md) for our responsible disclosure policy.
 
 ---
 

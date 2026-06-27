@@ -1,18 +1,52 @@
+# Python
 __pycache__/
 *.py[cod]
+*.pyo
 *.egg-info/
 dist/
 build/
+*.egg
+.pytest_cache/
+.coverage
+coverage.xml
+*.coverage
+.mypy_cache/
+.ropeproject/
+
+# Environment
 .env
+.env.local
+*.env
+
+# Logs
 logs/
 *.log
+
+# Database
 pgdata/
-celerybeat-schedule*
-data/
-venv/
-.idea/
-.vscode/
 *.db
 dump.rdb
 *.dump
+*.sql
+
+# Celery
+celerybeat-schedule*
+celerybeat.pid
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project data
+data/
+venv/
 app/backups/
+*.sql.gz
+
+# Docker
+.docker/
+
